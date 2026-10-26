@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Greenapple Store – Fresh groceries &amp; food</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="wrap">
+  <div class="logo">🍏 Green<span>apple</span></div>
+  <button class="cart-btn" id="openCart" aria-label="Open cart">🛒 Cart <b id="count">0</b></button>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <div>
+    <h1>Fresh from the farm to your kitchen</h1>
+    <p>Fruits, vegetables, dairy, bakery and pantry staples, picked daily and delivered to your door.</p>
+    <a class="cta" href="#shop">Start shopping</a>
+  </div>
+  <div class="basket" aria-hidden="true">🥭 🥕 🥛 🍞 🍅 🥦 🧀 🍌</div>
+</div></section>
+
+<main class="wrap" id="shop">
+  <div class="perks"><span>🚚 Free delivery over ₹499</span><span>🌿 Farm-fresh daily</span><span>↩️ Easy returns</span></div>
+  <div class="toolbar">
+    <div class="chips" id="chips"></div>
+    <input id="search" type="search" placeholder="Search groceries" aria-label="Search groceries">
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>© 2026 Greenapple Store · Fresh, local, simple.</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside id="cart" aria-label="Shopping cart">
+  <div class="ahead"><h2>Your cart</h2><button id="closeCart" aria-label="Close cart">×</button></div>
+  <div id="items"></div>
+  <div class="foot">
+    <div class="total"><span>Total</span><span id="total">₹0</span></div>
+    <button class="cta" id="checkout">Checkout</button>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+const products=[
+ {id:1,n:'Apples',e:'🍎',p:180,u:'1 kg',c:'Fruits'},
+ {id:2,n:'Bananas',e:'🍌',p:60,u:'1 dozen',c:'Fruits'},
+ {id:3,n:'Mangoes',e:'🥭',p:220,u:'1 kg',c:'Fruits'},
+ {id:4,n:'Tomatoes',e:'🍅',p:40,u:'1 kg',c:'Vegetables'},
+ {id:5,n:'Carrots',e:'🥕',p:55,u:'500 g',c:'Vegetables'},
+ {id:6,n:'Broccoli',e:'🥦',p:70,u:'1 piece',c:'Vegetables'},
+ {id:7,n:'Fresh milk',e:'🥛',p:34,u:'500 ml',c:'Dairy'},
+ {id:8,n:'Cheese slices',e:'🧀',p:120,u:'200 g',c:'Dairy'},
+ {id:9,n:'Eggs',e:'🥚',p:84,u:'12 pcs',c:'Dairy'},
+ {id:10,n:'Brown bread',e:'🍞',p:45,u:'1 loaf',c:'Bakery'},
+ {id:11,n:'Croissants',e:'🥐',p:95,u:'4 pcs',c:'Bakery'},
+ {id:12,n:'Basmati rice',e:'🍚',p:150,u:'1 kg',c:'Pantry'}
+];
+const cats=['All',...new Set(products.map(p=>p.c))];
+let cat='All',q='',cart={};
+const $=id=>document.getElementById(id);
+const money=n=>'₹'+n;
+
+function renderChips(){
+  $('chips').innerHTML=cats.map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('');
+}
+function renderGrid(){
+  const list=products.filter(p=>(cat==='All'||p.c===cat)&&p.n.toLowerCase().includes(q));
+  $('grid').innerHTML=list.length?list.map(p=>`
+   <article class="card"><div class="pic">${p.e}</div>
+    <h3>${p.n}</h3><span class="unit">${p.u}</span>
+    <div class="row"><span class="price">${money(p.p)}</span>
+    <button class="add" data-add="${p.id}">Add to cart</button></div></article>`).join('')
+   :'<p class="empty">No items match your search. Try another name or category.</p>';
+}
+function renderCart(){
+  const ids=Object.keys(cart);
+  let total=0,count=0;
+  $('items').innerHTML=ids.length?ids.map(id=>{
+    const p=products.find(x=>x.id==id),n=cart[id];total+=p.p*n;count+=n;
+    return `<div class="item"><div class="e">${p.e}</div>
+     <div><b>${p.n}</b><br><small>${money(p.p)} · ${p.u}</small></div>
+     <div class="qty"><button data-dec="${id}" aria-label="Remove one">−</button>${n}<button data-inc="${id}" aria-label="Add one">+</button></div></div>`;
+  }).join(''):'<p class="empty">Your cart is empty. Add something fresh from the shop.</p>';
+  $('count').textContent=count;
+  $('total').textContent=money(total);
+}
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1600);}
+function toggleCart(open){$('cart').classList.toggle('open',open);$('scrim').classList.toggle('open',open);}
+
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.c){cat=t.dataset.c;renderChips();renderGrid();}
+  if(t.dataset.add){const p=products.find(x=>x.id==t.dataset.add);cart[p.id]=(cart[p.id]||0)+1;renderCart();toast(p.n+' added to cart');}
+  if(t.dataset.inc){cart[t.dataset.inc]++;renderCart();}
+  if(t.dataset.dec){if(--cart[t.dataset.dec]<=0)delete cart[t.dataset.dec];renderCart();}
+});
+$('search').addEventListener('input',e=>{q=e.target.value.toLowerCase().trim();renderGrid();});
+$('openCart').onclick=()=>toggleCart(true);
+$('closeCart').onclick=$('scrim').onclick=()=>toggleCart(false);
+$('checkout').onclick=()=>{
+  if(!Object.keys(cart).length){toast('Add items before checkout');return;}
+  cart={};renderCart();toggleCart(false);toast('Order placed. Thank you!');
+};
+renderChips();renderGrid();renderCart();
+</script>
+</body>
+</html>
